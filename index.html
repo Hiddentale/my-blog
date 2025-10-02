@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Johan's Blog - Knowledge Graph</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">JOHAN VOSKAMP</a>
+        <div class="search-bar">
+            <input 
+                type="text" 
+                class="search-input" 
+                placeholder="Search posts by title, content, or tags..."
+                id="search-input"
+            >
+        </div>
+        <div class="view-toggle">
+            <button class="toggle-btn active" data-view="graph">GRAPH</button>
+            <button class="toggle-btn" data-view="list">LIST</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="graph-container">
+            <canvas id="graph-canvas"></canvas>
+            <div class="graph-controls">
+                <button class="control-btn" id="zoom-in" title="Zoom In">+</button>
+                <button class="control-btn" id="zoom-out" title="Zoom Out">−</button>
+                <button class="control-btn" id="reset-view" title="Reset View">⟲</button>
+            </div>
+        </div>
+
+        <div id="list-container">
+            <!-- Posts will be dynamically inserted here -->
+        </div>
+    </main>
+
+    <div id="reading-panel">
+        <button class="close-panel">×</button>
+        <div class="post-content">
+            <!-- Post content will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
