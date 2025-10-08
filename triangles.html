@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>triangles</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="how-to-make-the-gpu-and-cpu-trade-when-they-dont-want-to-need-other-name">How to make the GPU and CPU trade when they don’t want to (Need other name)</h1>
+<h2 id="tldr">TLDR</h2>
+<p>Transferring data to the GPU from the CPU is way harder than it seems, but when you see the parts step by step it’s not that bad.</p>
+<h2 id="intro-need-other-name">Intro (Need other name)</h2>
+<p>Two years ago I optimistically began working on my block-game with the intention of building it up bottom up from first principles. Not relying on any game engine and graphics engine. About two weeks later I finally built the Hello World equivalent of graphics programming: Drawing a triangle, and was so exhausted by the complexity of what I was doing that I put this <strong>project on hiatus</strong>.</p>
+<p>It’s 2025 now, and I’ve grown a lot more comfortable in complexity. My programming skills have in general also improved by a lot, so it was <strong>time to continue what I started</strong>.</p>
+<h2 id="the-biggest-problem-to-fix">The biggest problem to fix</h2>
+<p>The biggest problem the code had, was <strong>hardcoded variables</strong>. It might’ve impressively drawn a triangle on the screen, but the coordinates (and color values) of the edges of that triangle were hardcoded in a file that compiled it to machine code manually. Which basically meant that if you wanted to change the coordinates of those edges, you’d have to:</p>
+<ul>
+<li>manually change them in that file,</li>
+<li>compile them to machine code with a command line script,</li>
+<li>and then rerun the rust code.</li>
+</ul>
+<p>I hope you realize that this wouldn’t work for a graphics engine. In a game when we break a block, we need that block to disappear. Right now that isn’t possible since all coordinates are fixed until we restart our ‘game’.</p>
+<h2 id="the-setupthe-plan">The setup/The plan</h2>
+<p>You would think that this is not that hard. Just define the variables in the Rust code and send them over to the GPU so it can draw them whenever required. Nevertheless it is not that easy. Our Rust code is executed on the CPU, and in general the CPU can’t access the GPU’s memory and vice versa.</p>
+<blockquote>
+<p>Except if you are on Apple silicon and even then there are some caveats where the CPU can’t always access the GPU’s memory even though they share the same memory.</p>
+</blockquote>
+<p>Luckily there exists a part of memory that doesn’t necessarily belong to either the CPU or GPU, a space that both of them can access. Nice! You would think, let us just <strong>copy our data</strong> to that memory and then <strong>the GPU can just grab it and use it.</strong> You would actually be correct here, that is the basic gist of what we will do. It will just be way harder and more convoluted than you would think, especially since the GPU is a highly specialized machine that needs to know exactly what it will get, what it needs to be used for and when it needs to be used.</p>
+<p>The <strong>basic plan</strong> we will follow is this:</p>
+<ul>
+<li>Construct our coordinate data.</li>
+<li>Construct a piece of paper that tells us: the type of data we have, the size of our data (in bytes), what the data will be used for, how many processes are supposed to be able to access the data and some other configurations we will set to default for now.</li>
+<li>Figure out, given our constraints above, what are the requirements we need for this data to be stored properly in the shared pool of memory and in the GPU?</li>
+<li>Find a memory type that for fills the requirements from the previous step</li>
+<li>Now we actually allocate some memory in the shared pool that both GPU and CPU can access.</li>
+<li>Give our piece of paper from step 2 to the GPU, so it knows what it has to do with the data when it has access to it.</li>
+<li>Acquire the adress of where we will copy our data in shared memory.</li>
+<li>Copy the data.</li>
+<li>Throw away the adress for optimization’s sake.</li>
+</ul>
+<p>I hope you now see that this is harder that it seems. Let us get to it.</p>
+<h2 id="vertices">Vertices</h2>
+<h2 id="bufferhousing-document">Buffer/Housing document</h2>
+<h2 id="memory-requirements">Memory requirements</h2>
+<h2 id="finding-a-suitable-memory-type">Finding a suitable memory type</h2>
+<h2 id="allocating-the-gpu-memory">Allocating the GPU memory</h2>
+<h2 id="binding-the-buffer-to-allocated-memory">Binding the buffer to allocated memory</h2>
+<h2 id="mapping-the-memory-cpu-pointer">Mapping the memory (CPU pointer)</h2>
+<h2 id="copying-the-data">Copying the data</h2>
+<h2 id="unmapping-the-memory-cpu-pointer">Unmapping the memory (CPU pointer)</h2>
+<h2 id="recap">Recap</h2>
+<h2 id="next-stepswhat-will-the-next-blog-post-be-about">Next steps/What will the next blog post be about</h2>
+<p>Next step will be trying to draw a cube, and if that is too easy a 8x8x8 space of cubes.</p>
+</div>
+</body>
+
+</html>
