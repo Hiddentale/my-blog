@@ -1,52 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Johan's Blog - Knowledge Graph</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Johan's Blog</title>
+    <link rel="stylesheet" href="https://stackedit.io/style.css">
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <header>
-        <a href="/" class="logo">JOHAN VOSKAMP</a>
-        <div class="search-bar">
-            <input 
-                type="text" 
-                class="search-input" 
-                placeholder="Search posts by title, content, or tags..."
-                id="search-input"
-            >
-        </div>
-        <div class="view-toggle">
-            <button class="toggle-btn active" data-view="graph">GRAPH</button>
-            <button class="toggle-btn" data-view="list">LIST</button>
+        <div class="header-content">
+            <h1 class="logo">Johan Voskamp</h1>
+            <nav>
+                <a href="#" onclick="showHome(); return false;">Home</a>
+            </nav>
         </div>
     </header>
 
     <main>
-        <div id="graph-container">
-            <canvas id="graph-canvas"></canvas>
-            <div class="graph-controls">
-                <button class="control-btn" id="zoom-in" title="Zoom In">+</button>
-                <button class="control-btn" id="zoom-out" title="Zoom Out">−</button>
-                <button class="control-btn" id="reset-view" title="Reset View">⟲</button>
-            </div>
+        <div id="home-view" class="container">
+            <h2>Blog Posts</h2>
+            <div id="posts-list"></div>
         </div>
 
-        <div id="list-container">
-            <!-- Posts will be dynamically inserted here -->
+        <div id="post-view" class="container" style="display: none;">
+            <button class="back-btn" onclick="showHome()">← Back to posts</button>
+            <div id="post-content"></div>
         </div>
     </main>
 
-    <div id="reading-panel">
-        <button class="close-panel">×</button>
-        <div class="post-content">
-            <!-- Post content will be dynamically inserted here -->
-        </div>
-    </div>
-
     <script src="script.js"></script>
 </body>
+
 </html>
