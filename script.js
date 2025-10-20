@@ -8,7 +8,7 @@ const blogPosts = [
         content: `
                     <h1 id="how-to-make-the-gpu-and-cpu-trade-when-they-don’t-want-to-need-other-name">How to make the GPU and CPU trade when they don’t want to (Need other name)</h1>
 <h2 id="tldr">TLDR</h2>
-<p>Transferring data to the GPU from the CPU is way harder than it seems, but when you see the parts step by step it’s not that bad.</p>
+<p>TEMP</p>
 <h2 id="why-are-we-doing-this">Why are we doing this?</h2>
 <p>Two years ago I optimistically began working on my block-game with the intention of building it up bottom up from first principles. Not relying on any game engine and graphics engine. About two weeks later I finally built the Hello World equivalent of graphics programming: Drawing a triangle, and was so exhausted by the complexity of what I was doing that I put this <strong>project on hiatus</strong>.</p>
 <p>It’s 2025 now, and I’ve grown a lot more comfortable in complexity. My programming skills have in general also improved by a lot, so it was <strong>time to continue what I started</strong>.</p>
@@ -20,7 +20,7 @@ const blogPosts = [
 <li>and then rerun the rust code.</li>
 </ul>
 <p>I hope you realize that this wouldn’t work for a graphics engine. In a game when we break a block, we need that block to disappear. Right now that isn’t possible since all coordinates are fixed until we restart our ‘game’.</p>
-<h2 id="the-setupthe-plan">The plan</h2>
+<h2 id="the-setupthe-plan">The setup/The plan</h2>
 <p>You would think that this is not that hard. Just define the variables in the Rust code and send them over to the GPU so it can draw them whenever required. Nevertheless it is not that easy. Our Rust code is executed on the CPU, and in general the CPU can’t access the GPU’s memory and vice versa.</p>
 <blockquote>
 <p>Except if you are on Apple silicon and even then there are some caveats where the CPU can’t always access the GPU’s memory even though they share the same memory.</p>
@@ -63,7 +63,7 @@ const blogPosts = [
 </code></pre>
 <p>Observe the vectors <strong>vec2</strong> and <strong>vec3</strong> that are defined, they represent the triangle that is currently drawn on the screen when the program is run. Our first step is then to take this representation, and put it in our rust code:</p>
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">pub</span> <span class="token keyword">struct</span> Vertex  <span class="token punctuation">{</span>
-	pos<span class="token punctuation">:</span>  <span class="token punctuation">[</span>f32<span class="token punctuation">;</span>  <span class="token number">3</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+	pos<span class="token punctuation">:</span>  <span class="token punctuation">[</span>f32<span class="token punctuation">;</span>  <span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
 	color<span class="token punctuation">:</span>  <span class="token punctuation">[</span>f32<span class="token punctuation">;</span>  <span class="token number">3</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
 <span class="token punctuation">}</span>
 
@@ -83,8 +83,8 @@ const blogPosts = [
 <span class="token punctuation">]</span><span class="token punctuation">;</span>
 </code></pre>
 <p>You might wonder how this changes anything, since now the triangle is hard coded in our rust code instead of the glsl shader code. The difference is that we can easily change the rust code to dynamically generate vertices, for the shader file that is just not possible. Since we want to get our code working in the first place, it’s easier to just start with the hard coded version. When everything works properly, we can adjust how the vertices are created.</p>
-<h2 id="the-buffer">The Buffer</h2>
-<p>Imagine you are very very rich and trying to find a new house for the weekends. Obviously you are so busy with drinking tea that you do not have the time (or the knowledge, you’re uber rich after all, everyone does everything for you so you lack the basic skills and knowledge to do simple tasks the peasants can easily do) to search on housing websites for your humble new abode. So you call your handy butler and give him a specification of exactly what you want this new house to be. How many <span class="katex--inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>m</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">m^2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.814108em; vertical-align: 0em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.814108em;"><span class="" style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span> it needs to have, how many rooms, that it needs a sauna and a swimming pool. This specification is exactly what a buffer is, <strong>a container that holds all the information about what data the GPU will receive and what that data will be used for</strong>.</p>
+<h2 id="the-buffer-maybe-change-first-explanation-here-to-stay-consistent-with-work-explanation">The Buffer (Maybe change first explanation here to stay consistent with work explanation)</h2>
+<p>Imagine you are very rich and trying to find a new house for the weekends. Obviously you are so busy with drinking tea that you do not have the time to search on housing websites for your humble new abode. So you call your handy butler and give him a specification of exactly what you want this new house to be. How many <span class="katex--inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>m</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">m^2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.814108em; vertical-align: 0em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height: 0.814108em;"><span class="" style="top: -3.063em; margin-right: 0.05em;"><span class="pstrut" style="height: 2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span> it needs to have, how many rooms, that it needs a sauna and a swimming pool. This specification is exactly what a buffer is, <strong>a container that holds all the information about what data the GPU will receive and what that data will be used for</strong>.</p>
 <p>Our Vertices is the data we want to give to the GPU, but the GPU obviously needs to know how much of its memory it should reserve for them. Hence we need to find out how much memory, in bytes, the Vertices take up:</p>
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_size_in_bytes <span class="token operator">=</span> <span class="token punctuation">(</span>VERTICES<span class="token punctuation">.</span><span class="token function">len</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">*</span> size_of<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token operator">&lt;</span>Vertex<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">as</span> u64<span class="token punctuation">;</span>
 </code></pre>
@@ -107,23 +107,42 @@ const blogPosts = [
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer <span class="token operator">=</span> <span class="token keyword">unsafe</span><span class="token punctuation">{</span> vulkan_logical_device<span class="token punctuation">.</span><span class="token function">create_buffer</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>buffer_create_info<span class="token punctuation">,</span>  None<span class="token punctuation">)</span>? <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
 <h2 id="memory-requirements">Memory requirements</h2>
-<p>Next we need to figure out what type of memory is necessary for all the specifications we just made, hence we give our buffer to a Vulkan function that then spits out all the memory requirements:</p>
+<p>Next we need to figure out what the requirements are for all the specifications we just made, in terms of memory layout. Hence we give our buffer to a Vulkan function that then spits out all the memory requirements:</p>
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_mem_requirements <span class="token operator">=</span> <span class="token keyword">unsafe</span><span class="token punctuation">{</span> vulkan_logical_device<span class="token punctuation">.</span><span class="token function">get_buffer_memory_requirements</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
 <h2 id="finding-a-suitable-memory-type">Finding a suitable memory type</h2>
-<p>WIP</p>
+<p>We now know what memory requirements are necessary for our data. Hence the next step is selecting the type of memory that supports whatever we want it to do. This is more convoluted than you would expect.</p>
+<p>First we collect all possible memory types that our GPU supports:</p>
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> memory_properties <span class="token operator">=</span> instance<span class="token punctuation">.</span><span class="token function">get_physical_device_memory_properties</span><span class="token punctuation">(</span>vulkan_application_data<span class="token punctuation">.</span>physical_device<span class="token punctuation">)</span><span class="token punctuation">;</span>
 </code></pre>
+<p>Then we collect all the memory types that work with our data:</p>
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> allowed_memory_types <span class="token operator">=</span> buffer_mem_requirements<span class="token punctuation">.</span>memory_type_bits<span class="token punctuation">;</span>
 </code></pre>
-<pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> desired_properties <span class="token operator">=</span> 
+<p>And finally we also want our memory to have some additional properties:</p>
+<pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> requested_properties <span class="token operator">=</span> 
 vk<span class="token punctuation">:</span><span class="token punctuation">:</span>MemoryPropertyFlags<span class="token punctuation">:</span><span class="token punctuation">:</span>HOST_VISIBLE <span class="token operator">|</span> vk<span class="token punctuation">:</span><span class="token punctuation">:</span>MemoryPropertyFlags<span class="token punctuation">:</span><span class="token punctuation">:</span>HOST_COHERENT<span class="token punctuation">;</span>
 </code></pre>
-<pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_memory_type_index <span class="token operator">=</span> <span class="token function">find_memory_type</span><span class="token punctuation">(</span>
-	<span class="token operator">&amp;</span>memory_properties<span class="token punctuation">,</span>  
-	allowed_memory_types<span class="token punctuation">,</span>  
-	desired_properties<span class="token punctuation">)</span>?<span class="token punctuation">;</span>
+<p>where HOST_VISIBLE memory allows the CPU to read and write to that memory and HOST_COHERENT allows changes that we have made with the CPU to that memory to automatically be seen by the GPU. So <strong>the CPU can write our vertex data into this memory and the changes are automatically synchronized so that the GPU sees that that the data has been updated</strong>.</p>
+<p>Now we have all the information we need, the only thing we still need to do is go through all possible memory types and check if each memory type has all the requirements and properties we need. If this is the case, we can just return the index of that memory type, that is enough for the CPU and GPU to know what we are talking about.</p>
+<p>Hence we</p>
+<pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> number_of_different_memory_types <span class="token operator">=</span> memory_properties<span class="token punctuation">.</span>memory_type_count<span class="token punctuation">;</span> 
 </code></pre>
+<p>and then loop through all these memory types.</p>
+<pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">for</span> memory_type_index <span class="token keyword">in</span> <span class="token number">0</span><span class="token punctuation">..</span>number_of_different_memory_types <span class="token punctuation">{</span>
+	
+	<span class="token keyword">let</span> memory_type_is_allowed <span class="token operator">=</span> <span class="token punctuation">(</span>allowed_memory_types <span class="token operator">&amp;</span> <span class="token punctuation">(</span><span class="token number">1</span> <span class="token operator">&lt;&lt;</span> memory_type_index<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+	<span class="token keyword">if</span> memory_type_is_allowed <span class="token punctuation">{</span>
+		<span class="token keyword">let</span> memory_type_properties <span class="token operator">=</span> memory_properties<span class="token punctuation">.</span>memory_types<span class="token punctuation">[</span>memory_type_index <span class="token keyword">as</span>  usize<span class="token punctuation">]</span><span class="token punctuation">.</span>property_flags<span class="token punctuation">;</span>
+			
+	<span class="token keyword">let</span> has_all_desired_properties <span class="token operator">=</span> <span class="token punctuation">(</span>memory_type_properties <span class="token operator">&amp;</span> requested_properties<span class="token punctuation">)</span>  
+			<span class="token operator">==</span> requested_properties<span class="token punctuation">;</span>
+				
+	<span class="token keyword">if</span> has_all_desired_properties <span class="token punctuation">{</span>
+			<span class="token keyword">return</span> <span class="token function">Ok</span><span class="token punctuation">(</span>memory_type_index<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+</code></pre>
+<p>Since the allowed memory types that the GPU gave us is a <a href="https://en.wikipedia.org/wiki/Mask_(computing)">bit-mask</a>, we had to use bit wise operations to check equality.</p>
+<p>To make our code easier to read, we abstract most of this code away into a function, which can then also have some proper error handling if things go wrong:</p>
 <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">fn</span> <span class="token function">find_memory_type</span><span class="token punctuation">(</span>
 	memory_properties<span class="token punctuation">:</span> <span class="token operator">&amp;</span>vk<span class="token punctuation">:</span><span class="token punctuation">:</span>PhysicalDeviceMemoryProperties<span class="token punctuation">,</span>
 	allowed_memory_types<span class="token punctuation">:</span> u32<span class="token punctuation">,</span>
@@ -150,6 +169,12 @@ anyhow<span class="token punctuation">:</span><span class="token punctuation">:<
 	requested_properties
 	<span class="token punctuation">)</span><span class="token punctuation">;</span>
 <span class="token punctuation">}</span>
+</code></pre>
+<p>Conclusively, we call the function we have just defined, and successfully get the index of the memory type that we can use for the vertices:</p>
+<pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_memory_type_index <span class="token operator">=</span> <span class="token function">find_memory_type</span><span class="token punctuation">(</span>
+	<span class="token operator">&amp;</span>memory_properties<span class="token punctuation">,</span>  
+	allowed_memory_types<span class="token punctuation">,</span>  
+	desired_properties<span class="token punctuation">)</span>?<span class="token punctuation">;</span>
 </code></pre>
 <h2 id="allocating-the-gpu-memory">Allocating the GPU memory</h2>
 <p>WIP</p>
@@ -198,6 +223,7 @@ anyhow<span class="token punctuation">:</span><span class="token punctuation">:<
 <h2 id="recap">Recap</h2>
 <h2 id="next-stepswhat-will-the-next-blog-post-be-about">Next steps/What will the next blog post be about</h2>
 <p>Next step will be trying to draw a cube, but for us to be able to see the cube we need a working camera system.</p>
+
 
 
                 `
