@@ -3,35 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Johan's Blog</title>
-    <link rel="stylesheet" href="https://stackedit.io/style.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <header>
-        <div class="header-content">
-            <h1 class="logo">Johan Voskamp</h1>
-            <nav>
-                <a href="#" onclick="showHome(); return false;">Home</a>
-            </nav>
-        </div>
+        <h1>Johan Voskamp</h1>
+        <nav><a href="index.html">Home</a></nav>
     </header>
 
     <main>
-        <div id="home-view" class="container">
-            <h2>Blog Posts</h2>
-            <div id="posts-list"></div>
-        </div>
+        <h2>Blog Posts</h2>
 
-        <div id="post-view" class="container" style="display: none;">
-            <button class="back-btn" onclick="showHome()">← Back to posts</button>
-            <div id="post-content"></div>
+        <div class="post-item">
+            <h3><a href="posts/vertex_data_to_gpu.html">GPU-CPU shenanigans</a></h3>
+            <div class="post-meta">2025-09-15 • Rust</div>
+            <p>Brief excerpt about the post...</p>
         </div>
     </main>
-
-    <script src="script.js"></script>
 </body>
 
 </html>
