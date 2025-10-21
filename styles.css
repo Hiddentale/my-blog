@@ -15,24 +15,14 @@ header {
     background: white;
     border-bottom: 1px solid #e0e0e0;
     padding: 1rem 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    text-align: center;
 }
 
-.header-content {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo {
-    font-size: 1.2rem;
+header h1 {
+    font-size: 1.5rem;
     font-weight: 600;
     color: #333;
+    margin-bottom: 0.5rem;
 }
 
 nav a {
@@ -46,71 +36,67 @@ nav a:hover {
 }
 
 main {
-    padding: 0;
-}
-
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 30px;
-}
-
-#home-view {
-    padding: 2rem 0;
-}
-
-#home-view h2 {
-    margin-bottom: 2rem;
-    color: #333;
-    font-size: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 2rem;
 }
 
 .post-item {
-    background: white;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.post-item:hover {
-    border-color: #999;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    text-align: center;
 }
 
 .post-item h3 {
-    margin: 0 0 0.5rem 0;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.post-item h3 a {
     color: #333;
-    font-size: 1.3rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.post-item h3 a:hover {
+    color: #666;
+    text-decoration: underline;
 }
 
 .post-meta {
     font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 0.75rem;
+    color: #999;
+    margin-top: 0.5rem;
 }
 
-.post-excerpt {
-    color: #555;
-    line-height: 1.6;
-    margin-bottom: 0.75rem;
+/* Post view styles */
+.post-header {
+    text-align: left;
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 0;
+    background: rgb(250, 245, 253);
+    padding: 1rem 0;
+    z-index: 10;
 }
 
-.post-tags {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.tag {
+.home-btn {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
-    background: rgb(248, 241, 253);
-    border-radius: 4px;
-    font-size: 0.85rem;
     color: #666;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    transition: all 0.2s;
+}
+
+.home-btn:hover {
+    color: #333;
+    border-color: #999;
+    background: #fafafa;
 }
 
 #post-view {
