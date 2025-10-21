@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>GPU-CPU shenanigans - Johan's Blog</title>
+    <title>From Hardcoded to Dynamic: Managing Vertex Buffers in Vulkan</title>
     <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="https://stackedit.io/style.css">
 </head>
@@ -11,82 +11,62 @@
 <body>
     <main>
         <article class="stackedit__html">
-            <h1 id="how-to-make-the-gpu-and-cpu-trade-when-they-don’t-want-to-need-other-name">How to make the GPU and
-                CPU trade
-                when they don’t want to (Need other name)</h1>
-            <h2 id="tldr">TLDR</h2>
-            <p>TEMP</p>
+            <h1 id="from-hardcoded-to-dynamic-managing-vertex-buffers-in-vulkan">From Hardcoded to Dynamic: Managing
+                Vertex Buffers in Vulkan</h1>
+            <p><em>Zero AI was used to write this blog post! A miraculous wonder that does not exist anymore!</em></p>
             <h2 id="why-are-we-doing-this">Why are we doing this?</h2>
             <p>Two years ago I optimistically began working on my block-game with the intention of building it up bottom
-                up from
-                first principles. Not relying on any game engine and graphics engine. About two weeks later I finally
-                built the
-                Hello World equivalent of graphics programming: Drawing a triangle, and was so exhausted by the
-                complexity of what I
-                was doing that I put this <strong>project on hiatus</strong>.</p>
+                up from first principles. Not relying on any game engine and graphics engine. About two weeks later I
+                finally built the Hello World equivalent of graphics programming: Drawing a triangle<br>
+                <img src="../images/triangle.png" alt=""><br>
+                and subsequently was so exhausted by the complexity of what I was doing that I put this <strong>project
+                    on hiatus</strong>.
+            </p>
             <p>It’s 2025 now, and I’ve grown a lot more comfortable in complexity. My programming skills have in general
-                also
-                improved by a lot, so it was <strong>time to continue what I started</strong>.</p>
+                also improved by a lot, so it was <strong>time to continue what I started</strong>.</p>
             <h2 id="the-biggest-problem-to-fix">The biggest problem to fix</h2>
             <p>The biggest problem the code had, was <strong>hardcoded variables</strong>. It might’ve drawn a triangle
-                on the
-                screen, but the coordinates (and color values) of the edges of that triangle were hardcoded in a shader
-                file that
-                compiled it to machine code manually. Which basically meant that if you wanted to change the coordinates
-                of those
-                edges, you’d have to:</p>
+                on the screen, but the coordinates (and color values) of the edges of that triangle were hardcoded in a
+                shader file that compiled it to machine code manually. Which basically meant that if you wanted to
+                change the coordinates of those edges, you’d have to:</p>
             <ul>
                 <li>manually change them in that file,</li>
                 <li>compile them to machine code with a command line script,</li>
-                <li>and then rerun the rust code.</li>
+                <li>and then rerun the Rust code.</li>
             </ul>
             <p>I hope you realize that this wouldn’t work for a graphics engine. In a game when we break a block, we
-                need that block
-                to disappear. Right now that isn’t possible since all coordinates are fixed until we restart our ‘game’.
-            </p>
+                need that block to disappear. Right now that isn’t possible since all coordinates are fixed until we
+                restart our ‘game’.</p>
             <h2 id="the-setupthe-plan">The setup/The plan</h2>
             <p>You would think that this is not that hard. Just define the variables in the Rust code and send them over
-                to the GPU
-                so it can draw them whenever required. Nevertheless it is not that easy. Our Rust code is executed on
-                the CPU, and
-                in general the CPU can’t access the GPU’s memory and vice versa.</p>
+                to the GPU so it can draw them whenever required. Nevertheless it is not that easy. Our Rust code is
+                executed on the CPU, and in general the CPU can’t access the GPU’s memory and vice versa.</p>
             <blockquote>
                 <p>Except if you are on Apple silicon and even then there are some caveats where the CPU can’t always
-                    access the
-                    GPU’s memory even though they share the same memory.</p>
+                    access the GPU’s memory even though they share the same memory.</p>
             </blockquote>
             <p>Luckily there exists a part of memory that doesn’t necessarily belong to either the CPU or GPU, a space
-                that both of
-                them can access. Nice! You would think, let us just <strong>copy our data</strong> to that memory and
-                then
-                <strong>the GPU can just grab it and use it.</strong> You would actually be correct here, that is the
-                basic gist of
-                what we will do. It will just be way harder and more convoluted than you would think, especially since
-                the GPU is a
-                highly specialized machine that needs to know exactly what it will get, what it needs to be used for and
-                when it
-                needs to be used.
-            </p>
-            <p>The <strong>basic plan</strong> we will follow is this:<br>
-                (NUMBERS INSTEAD OF BULLET POINTS)</p>
-            <ul>
+                that both of them can access. Nice! You would think, let us just <strong>copy our data</strong> to that
+                memory and then <strong>the GPU can just grab it and use it.</strong> You would actually be correct
+                here, that is the basic gist of what we will do. It will just be way harder and more convoluted than you
+                would think, especially since the GPU is a highly specialized machine that needs to know exactly what it
+                will get, what it needs to be used for and when it needs to be used.</p>
+            <p>The <strong>basic plan</strong> we will follow is this:</p>
+            <ol>
                 <li>Construct our coordinate data.</li>
                 <li>Construct a piece of paper that tells us: the type of data we have, the size of our data (in bytes),
-                    what the
-                    data will be used for, how many processes are supposed to be able to access the data and some other
-                    configurations we will set to default for now.</li>
+                    what the data will be used for, how many processes are supposed to be able to access the data and
+                    some other configurations we will set to default for now.</li>
                 <li>Figure out, given our constraints above, what are the requirements we need for this data to be
-                    stored properly
-                    in the shared pool of memory and in the GPU?</li>
+                    stored properly in the shared pool of memory and in the GPU?</li>
                 <li>Find a memory type that for fills the requirements from the previous step</li>
                 <li>Now we actually allocate some memory in the shared pool that both GPU and CPU can access.</li>
                 <li>Give our piece of paper from step 2 to the GPU, so it knows what it has to do with the data when it
-                    has access
-                    to it.</li>
+                    has access to it.</li>
                 <li>Acquire the address of where we will copy our data in shared memory.</li>
                 <li>Copy the data.</li>
                 <li>Throw away the address for optimization’s sake.</li>
-            </ul>
+            </ol>
             <p>I hope you now see that this is harder that it seems. Let us get to it.</p>
             <h2 id="vertices">Vertices</h2>
             <p>So, right now our vertex(coordinate) data is hardcoded in our shader file:</p>
@@ -111,10 +91,8 @@
 <span class="token punctuation">}</span>
 </code></pre>
             <p>Observe the vectors <strong>vec2</strong> and <strong>vec3</strong> that are defined, they represent the
-                triangle
-                that is currently drawn on the screen when the program is run. Our first step is then to take this
-                representation,
-                and put it in our rust code:</p>
+                triangle that is currently drawn on the screen when the program is run. Our first step is then to take
+                this representation, and put it in our Rust code:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">pub</span> <span class="token keyword">struct</span> Vertex  <span class="token punctuation">{</span>
 	pos<span class="token punctuation">:</span>  <span class="token punctuation">[</span>f32<span class="token punctuation">;</span>  <span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
 	color<span class="token punctuation">:</span>  <span class="token punctuation">[</span>f32<span class="token punctuation">;</span>  <span class="token number">3</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
@@ -135,77 +113,38 @@
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
 <span class="token punctuation">]</span><span class="token punctuation">;</span>
 </code></pre>
-            <p>You might wonder how this changes anything, since now the triangle is hard coded in our rust code instead
-                of the glsl
-                shader code. The difference is that we can easily change the rust code to dynamically generate vertices,
-                for the
-                shader file that is just not possible. Since we want to get our code working in the first place, it’s
-                easier to just
-                start with the hard coded version. When everything works properly, we can adjust how the vertices are
-                created.</p>
-            <h2 id="the-buffer-maybe-change-first-explanation-here-to-stay-consistent-with-work-explanation">The Buffer
-                (Maybe
-                change first explanation here to stay consistent with work explanation)</h2>
-            <p>Imagine you are very rich and trying to find a new house for the weekends. Obviously you are so busy with
-                drinking
-                tea that you do not have the time to search on housing websites for your humble new abode. So you call
-                your handy
-                butler and give him a specification of exactly what you want this new house to be. How many <span
-                    class="katex--inline"><span class="katex"><span class="katex-mathml"><math
-                                xmlns="http://www.w3.org/1998/Math/MathML">
-                                <semantics>
-                                    <mrow>
-                                        <msup>
-                                            <mi>m</mi>
-                                            <mn>2</mn>
-                                        </msup>
-                                    </mrow>
-                                    <annotation encoding="application/x-tex">m^2</annotation>
-                                </semantics>
-                            </math></span><span class="katex-html" aria-hidden="true"><span class="base"><span
-                                    class="strut" style="height: 0.814108em; vertical-align: 0em;"></span><span
-                                    class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span
-                                            class="vlist-t"><span class="vlist-r"><span class="vlist"
-                                                    style="height: 0.814108em;"><span class=""
-                                                        style="top: -3.063em; margin-right: 0.05em;"><span
-                                                            class="pstrut" style="height: 2.7em;"></span><span
-                                                            class="sizing reset-size6 size3 mtight"><span
-                                                                class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>
-                it needs to have, how many rooms, that it needs a sauna and a swimming pool. This specification is
-                exactly what a
-                buffer is, <strong>a container that holds all the information about what data the GPU will receive and
-                    what that
-                    data will be used for</strong>.</p>
+            <p>You might wonder how this changes anything, since now the triangle is hard coded in our Rust code instead
+                of the glsl shader code. The difference is that we can easily change the Rust code to dynamically
+                generate vertices, for the shader file that is just not possible. Since we want to get our code working
+                in the first place, it’s easier to just start with the hard coded version. When everything works
+                properly, we can adjust how the vertices are created.</p>
+            <h2 id="the-buffer">The Buffer</h2>
+            <p>Imagine you are very rich and trying to find a yacht for some weekends. Sadly you are not that rich that
+                you could just a buy a yacht yourself, hence you are planning to buy the yacht together with a a group
+                of others and then timeshare it. Obviously you are so busy with drinking tea that you do not have the
+                time to search for your humble new abode. So you call your handy butler and give him a specification of
+                exactly what you want this new yacht to be. How big it should be, how many rooms it will have, that it
+                needs a sauna and a swimming pool. This specification is exactly what a buffer is, <strong>a container
+                    that holds all the information/metadata about what data the GPU will receive and what that data will
+                    be used for</strong>.</p>
             <p>Our Vertices is the data we want to give to the GPU, but the GPU obviously needs to know how much of its
-                memory it
-                should reserve for them. Hence we need to find out how much memory, in bytes, the Vertices take up:</p>
+                memory it should reserve for them. So we need to find out how much memory, in bytes, the Vertices take
+                up:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_size_in_bytes <span class="token operator">=</span> <span class="token punctuation">(</span>VERTICES<span class="token punctuation">.</span><span class="token function">len</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">*</span> size_of<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token operator">&lt;</span>Vertex<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">as</span> u64<span class="token punctuation">;</span>
 </code></pre>
-            <p>Then we specify a few other tidbits about our buffer. Imagine you have a whiteboard in your office at
-                work, and there
-                are multiple teams working on different projects that’d like to use the whiteboard. If we’d specify</p>
+            <p>Then we specify a few other tidbits about our buffer. Imagine you found and bought the yacht together
+                with a group of other rich people. If we’d specify</p>
             <pre class=" language-rust"><code class="prism  language-rust">vk<span class="token punctuation">:</span><span class="token punctuation">:</span>SharingMode<span class="token punctuation">:</span><span class="token punctuation">:</span>CONCURRENT
 </code></pre>
-            <p>it would mean that each team can use the whiteboard at any moment whenever they’d want. So if your team
-                is currently
-                working on a project and writing on the whiteboard, Derek’s team could just waltz in, grab the
-                whiteboard and start
-                writing their own stuff on it. Maybe even writing over your own stuff, that definitely seems like a bad
-                idea. That
-                is why we use</p>
+            <p>it would mean that each person could use the yacht at any moment whenever they’d want. So if you are is
+                currently cruising on the yacht, Derek could just waltz in, grab the helm and start having their own
+                party. That is why we use</p>
             <pre class=" language-rust"><code class="prism  language-rust">vk<span class="token punctuation">:</span><span class="token punctuation">:</span>SharingMode<span class="token punctuation">:</span><span class="token punctuation">:</span>EXCLUSIVE
 </code></pre>
-            <p>which is exactly the opposite: Only 1 team can use the whiteboard at any time, they have to take turns
-                and verbally
-                hand over the right of using the whiteboard before the other team can use it. You’d most likely think:
-                <em>Why does
-                    concurrent mode even exist</em>, it apparently only has niche use cases where it does shine, but not
-                in our
-                case.
-            </p>
+            <p>which is exactly the opposite: Only 1 person can use the yacht at any time, they have to take turns and
+                verbally hand over the right of using the yacht before any other person can use it.</p>
             <p>Furthermore, obviously our buffer, is a vertex buffer. Other specifications are not necessary at the
-                moment, so we
-                will leave them in their default state:</p>
+                moment, so we will leave them in their default state:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_create_info <span class="token operator">=</span> vk<span class="token punctuation">:</span><span class="token punctuation">:</span>BufferCreateInfo <span class="token punctuation">{</span>
 	size<span class="token punctuation">:</span> buffer_size_in_bytes<span class="token punctuation">,</span>
 	usage<span class="token punctuation">:</span> vk<span class="token punctuation">:</span><span class="token punctuation">:</span>BufferUsageFlags<span class="token punctuation">:</span><span class="token punctuation">:</span>VERTEX_BUFFER<span class="token punctuation">,</span>
@@ -218,15 +157,13 @@
 </code></pre>
             <h2 id="memory-requirements">Memory requirements</h2>
             <p>Next we need to figure out what the requirements are for all the specifications we just made, in terms of
-                memory
-                layout. Hence we give our buffer to a Vulkan function that then spits out all the memory requirements:
-            </p>
+                memory layout. Therefore we give our buffer to a Vulkan function that then spits out all the memory
+                requirements:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_mem_requirements <span class="token operator">=</span> <span class="token keyword">unsafe</span><span class="token punctuation">{</span> vulkan_logical_device<span class="token punctuation">.</span><span class="token function">get_buffer_memory_requirements</span><span class="token punctuation">(</span>buffer<span class="token punctuation">)</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
             <h2 id="finding-a-suitable-memory-type">Finding a suitable memory type</h2>
-            <p>We now know what memory requirements are necessary for our data. Hence the next step is selecting the
-                type of memory
-                that supports whatever we want it to do. This is more convoluted than you would expect.</p>
+            <p>We now know what memory requirements are necessary for our data. Thus the next step is selecting the type
+                of memory that supports whatever we want it to do. This is more convoluted than you would expect.</p>
             <p>First we collect all possible memory types that our GPU supports:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> memory_properties <span class="token operator">=</span> instance<span class="token punctuation">.</span><span class="token function">get_physical_device_memory_properties</span><span class="token punctuation">(</span>vulkan_application_data<span class="token punctuation">.</span>physical_device<span class="token punctuation">)</span><span class="token punctuation">;</span>
 </code></pre>
@@ -238,18 +175,14 @@
 vk<span class="token punctuation">:</span><span class="token punctuation">:</span>MemoryPropertyFlags<span class="token punctuation">:</span><span class="token punctuation">:</span>HOST_VISIBLE <span class="token operator">|</span> vk<span class="token punctuation">:</span><span class="token punctuation">:</span>MemoryPropertyFlags<span class="token punctuation">:</span><span class="token punctuation">:</span>HOST_COHERENT<span class="token punctuation">;</span>
 </code></pre>
             <p>where HOST_VISIBLE memory allows the CPU to read and write to that memory and HOST_COHERENT allows
-                changes that we
-                have made with the CPU to that memory to automatically be seen by the GPU. So <strong>the CPU can write
-                    our vertex
-                    data into this memory and the changes are automatically synchronized so that the GPU sees that that
-                    the data has
-                    been updated</strong>.</p>
+                changes that we have made with the CPU to that memory to automatically be seen by the GPU. So
+                <strong>the CPU can write our vertex data into this memory and the changes are automatically
+                    synchronized so that the GPU sees that that the data has been updated</strong>.
+            </p>
             <p>Now we have all the information we need, the only thing we still need to do is go through all possible
-                memory types
-                and check if each memory type has all the requirements and properties we need. If this is the case, we
-                can just
-                return the index of that memory type, that is enough for the CPU and GPU to know what we are talking
-                about.</p>
+                memory types and check if each memory type has all the requirements and properties we need. If this is
+                the case, we can just return the index of that memory type, that is enough for the CPU and GPU to know
+                what we are talking about.</p>
             <p>Hence we</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> number_of_different_memory_types <span class="token operator">=</span> memory_properties<span class="token punctuation">.</span>memory_type_count<span class="token punctuation">;</span> 
 </code></pre>
@@ -269,13 +202,11 @@ vk<span class="token punctuation">:</span><span class="token punctuation">:</spa
 </code></pre>
             <p>Since the allowed memory types that the GPU gave us is a <a
                     href="https://en.wikipedia.org/wiki/Mask_(computing)">bitmask</a>, we had to use bit wise operations
-                to check
-                equality. A more in depth explanation of how bitmask and operations on them work will be done in a
-                future blog post.
-            </p>
+                to check equality. Each bit represents a memory type, we shift 1 left by the index to check if that bit
+                is set. A more in depth explanation of how bitmasks and operations on them work will be done in a
+                separate blog post.</p>
             <p>To make our code easier to read, we abstract most of this code away into a function, which can then also
-                have some
-                proper error handling if things go wrong:</p>
+                have some proper error handling if things go wrong:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">fn</span> <span class="token function">find_memory_type</span><span class="token punctuation">(</span>
 	memory_properties<span class="token punctuation">:</span> <span class="token operator">&amp;</span>vk<span class="token punctuation">:</span><span class="token punctuation">:</span>PhysicalDeviceMemoryProperties<span class="token punctuation">,</span>
 	allowed_memory_types<span class="token punctuation">:</span> u32<span class="token punctuation">,</span>
@@ -304,21 +235,18 @@ vk<span class="token punctuation">:</span><span class="token punctuation">:</spa
 <span class="token punctuation">}</span>
 </code></pre>
             <p>Conclusively, we call the function we have just defined, and successfully get the index of the memory
-                type that we
-                can use for the vertices:</p>
+                type that we can use for the vertices:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> buffer_memory_type_index <span class="token operator">=</span> <span class="token function">find_memory_type</span><span class="token punctuation">(</span>
 	<span class="token operator">&amp;</span>memory_properties<span class="token punctuation">,</span>  
 	allowed_memory_types<span class="token punctuation">,</span>  
 	desired_properties
 <span class="token punctuation">)</span>?<span class="token punctuation">;</span>
 </code></pre>
-            <h2 id="allocating-the-cpu-gpu-shared-memory">Allocating the CPU-GPU shared memory</h2>
+            <h2 id="allocating-the-gpu-memory">Allocating the GPU memory</h2>
             <p>Now that we know the memory type that we will use, we can <a
                     href="https://en.wikipedia.org/wiki/Memory_management#Manual_memory_management">allocate</a> some
-                memory of this
-                memory type. This means we are <strong>telling the GPU which chunk of memory we want access to</strong>.
-                To do this
-                properly we need some give Vulkan some extra information:</p>
+                memory of this memory type. This means we are <strong>telling the GPU which chunk of memory we want
+                    access to</strong>. To do this properly we need give Vulkan some extra information:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> allocation_info <span class="token operator">=</span> vk<span class="token punctuation">:</span><span class="token punctuation">:</span>MemoryAllocateInfo <span class="token punctuation">{</span>
 	s_type<span class="token punctuation">:</span> vk<span class="token punctuation">:</span><span class="token punctuation">:</span>StructureType<span class="token punctuation">:</span><span class="token punctuation">:</span>MEMORY_ALLOCATE_INFO<span class="token punctuation">,</span>
 	next<span class="token punctuation">:</span> std<span class="token punctuation">:</span><span class="token punctuation">:</span>ptr<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token function">null</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
@@ -326,11 +254,9 @@ vk<span class="token punctuation">:</span><span class="token punctuation">:</spa
 	memory_type_index<span class="token punctuation">:</span> buffer_memory_type_index<span class="token punctuation">,</span>
 <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
-            <p>You might be confused why <strong>s_type</strong> is defined as MEMORY_ALLOCATE_INFO when the function we
-                are calling
-                is already called MemoryAllocateInfo. We are communicating with the Vulkan Driver here, which is written
-                and hence
-                runs in C. A good way to visualize this is in the following way:</p>
+            <p>You might be confused why <strong>s_type</strong> is defined as MEMORY_ALLOCATE_INFO, when the function
+                we are calling is already called MemoryAllocateInfo. This is because we are communicating with the
+                Vulkan Driver here, which runs in C code. A good way to visualize this is in the following way:</p>
             <pre class=" language-rust"><code class="prism  language-rust">Our Rust code 
 	↓ 
 <span class="token function">Vulkanalia</span> <span class="token punctuation">(</span>Rust wrapper that basically says<span class="token punctuation">:</span> These Rust functions call these C functions<span class="token punctuation">)</span> 
@@ -341,14 +267,12 @@ GPU <span class="token function">Driver</span> <span class="token punctuation">(
 	↓ 
 Your Graphics card
 </code></pre>
-            <p>Thus it does not matter how our Rust functions are called, we still need to tell the Vulkan Driver that
-                this
-                allocation_info is of the type that allocates memory.</p>
+            <p>Thus it does not matter how our Rust functions are called, those names disappear when Vulkanalia calls
+                Vulkan’s functions. We still need to tell the Vulkan Driver that this info is of the type that allocates
+                memory.</p>
             <p>The <strong>next</strong> argument in the function allows us to specify extra information about the
-                allocation, which
-                is not necessary for our current goal, hence we just give it an empty value. Now we can actually
-                allocate the
-                memory:</p>
+                allocation, which is not necessary for our current goal, so we just give it an empty value. Now we can
+                actually allocate the memory:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> allocated_memory <span class="token operator">=</span> <span class="token keyword">unsafe</span> <span class="token punctuation">{</span> vulkan_logical_device<span class="token punctuation">.</span><span class="token function">allocate_memory</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>allocation_info<span class="token punctuation">,</span> None<span class="token punctuation">)</span>? <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
             <h2 id="binding-the-buffer-to-allocated-memory">Binding the buffer to allocated memory</h2>
@@ -356,14 +280,11 @@ Your Graphics card
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">unsafe</span> <span class="token punctuation">{</span> vulkan_logical_device<span class="token punctuation">.</span><span class="token function">bind_buffer_memory</span><span class="token punctuation">(</span>buffer<span class="token punctuation">,</span> allocated_memory<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span>? <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
             <p>This does not mean that we have put any data in the memory we have allocated! We only linked the metadata
-                of what we
-                will do with this memory to the allocated memory.</p>
+                of what we will do with this memory to the allocated memory.</p>
             <h2 id="acquire-the-address-pointer-to-the-memory-we-allocated">Acquire the address (pointer) to the memory
-                we allocated
-            </h2>
+                we allocated</h2>
             <p>So the GPU now knows what chunk of memory we want to access, and it knows what we want to do with it. The
-                next step
-                is asking the GPU to give us the address of that piece of memory.</p>
+                next step is asking the GPU to give us the address of that piece of memory.</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> pointer_to_mapped_memory <span class="token operator">=</span> <span class="token keyword">unsafe</span> <span class="token punctuation">{</span>
 	vulkan_logical_device<span class="token punctuation">.</span><span class="token function">map_memory</span><span class="token punctuation">(</span>
 	allocated_memory<span class="token punctuation">,</span> 			<span class="token comment">// Which GPU memory to map</span>
@@ -374,16 +295,13 @@ Your Graphics card
 <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
             <p>When we ask for this address we also tell the GPU how much access we want, since we want access to all of
-                the
-                allocation we give buffer_mem_requirements.size as a parameter.</p>
+                the allocation we give buffer_mem_requirements.size as a parameter.</p>
             <h2 id="copying-the-data">Copying the data</h2>
-            <p>Since we just got a C address (pointer), but we are working in Rust, we have a caveat to work out. Rust
-                does not know
-                anything about the pointer we have gotten, and hence if we would just try to copy our data to the
-                pointer Rust would
-                not allow it, since this is undefined behavior. Hence we basically need to tell Rust: <em>Bro trust me,
-                    I got this.
-                    This pointer is of type T and is mutable</em>:</p>
+            <p>Since we just got a C pointer (address), but we are working in Rust, we have a caveat to work out. Rust
+                does not know anything about the pointer we acquired, it is of type null. Hence if we would try to copy
+                our data to the pointer, Rust would not allow it since this is undefined behavior. Therefore we
+                basically need to tell Rust: <em>Bro trust me, I got this. This pointer is of type T and is
+                    mutable</em>:</p>
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">let</span> vertex_pointer <span class="token operator">=</span> pointer_to_mapped_memory <span class="token keyword">as</span> <span class="token operator">*</span><span class="token keyword">mut</span> T<span class="token punctuation">;</span>
 </code></pre>
             <p>And then we can happily copy our vertex data into the GPU memory:</p>
@@ -400,26 +318,41 @@ Your Graphics card
             <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">unsafe</span><span class="token punctuation">{</span> vulkan_logical_device<span class="token punctuation">.</span><span class="token function">unmap_memory</span><span class="token punctuation">(</span>allocated_memory<span class="token punctuation">)</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
 </code></pre>
             <p>which is done for optimization reasons. Unmapping the pointer means we don’t have the address anymore of
-                where we put
-                our data and hence can’t access it anymore.</p>
+                where we put our data and hence can’t access it anymore.</p>
             <p>That’s it!</p>
             <h2 id="recap">Recap</h2>
-            <pre class=" language-rust"><code class="prism  language-rust">
-</code></pre>
+            <p>We started with hard-coded vertex data <em>outside</em> our Rust code, by putting this data into Rust
+                itself as a variable we had to add quite some functionality to make sure that the GPU can still acquire
+                our vertices and hence draw a triangle on the screen. First, we had to construct a buffer that holds the
+                metadata of what is necessary for our vertex data to be put into GPU memory. Then, we figured out which
+                memory type supports our vertex data, and allocated memory in the GPU. Furthermore, we binded our buffer
+                to this allocation and then, after acquiring a pointer, copied our vertex data to the memory. Finally,
+                we unmapped our pointer for optimization.</p>
+            <p>The result (after some extra work of changing shaders and calling functions in the pipeline) is
+                unspectacular, nothing changed!<br>
+                <img src="../images/triangle.png" alt=""><br>
+                Nevertheless, don’t forget how much code we’ve changed. Everything works identical, but now we have way
+                more flexibility in how we define our vertices. Now we can regenerate vertices every frame based on
+                player input, physics, or procedural generation!
+            </p>
             <h2 id="next-stepswhat-will-the-next-blog-post-be-about">Next steps/What will the next blog post be about
             </h2>
-            <p>Next step will be trying to draw textures on our square and then draw a cube, but for us to be able to
-                see the cube
-                we need a working camera system. And to be fair, texture mapping is apparently harder than what we just
-                did, so that
-                might take a while. You can follow my progress at: <a
+            <p>Next step will be trying to draw textures on our triangle and then draw a cube, but for us to be able to
+                see the cube we need a working camera system. And to be fair, texture mapping is apparently harder than
+                what we just did, so that might take a while. You can follow my progress at: <a
                     href="https://github.com/Hiddentale/Learning_Vulkan">https://github.com/Hiddentale/Learning_Vulkan</a>,
-                note
-                that I work on separate branches and hence don’t push my changes to the main branch except for pull
-                requests. Thus
-                the changes will only be visible if you look at sub-branches.</p>
+                note that I work on separate branches and hence don’t push my changes to the main branch except for pull
+                requests. Thus the changes will only be visible if you look at sub-branches.</p>
             <h2 id="full-code">Full code</h2>
-            <pre class=" language-rust"><code class="prism  language-rust"><span class="token comment">/// Allocates GPU buffer memory, copies data from CPU to GPU, and returns handles.</span>
+            <pre class=" language-rust"><code class="prism  language-rust"><span class="token keyword">use</span>  <span class="token keyword">crate</span><span class="token punctuation">:</span><span class="token punctuation">:</span>graphical_core<span class="token punctuation">:</span><span class="token punctuation">:</span>vulkan_object<span class="token punctuation">:</span><span class="token punctuation">:</span>VulkanApplicationData<span class="token punctuation">;</span>
+<span class="token keyword">use</span> anyhow<span class="token punctuation">;</span>
+<span class="token keyword">use</span> std<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token punctuation">{</span>mem<span class="token punctuation">:</span><span class="token punctuation">:</span>size_of<span class="token punctuation">,</span> ptr<span class="token punctuation">:</span><span class="token punctuation">:</span>copy_nonoverlapping<span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token keyword">use</span> vulkanalia<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token punctuation">{</span>
+	vk<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token punctuation">{</span><span class="token keyword">self</span><span class="token punctuation">,</span>  DeviceV1_0<span class="token punctuation">,</span>  InstanceV1_0<span class="token punctuation">}</span><span class="token punctuation">,</span>
+	Device<span class="token punctuation">,</span>  Instance<span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token comment">/// Allocates GPU buffer memory, copies data from CPU to GPU, and returns handles.</span>
 <span class="token comment">///</span>
 <span class="token comment">/// # Process Overview</span>
 <span class="token comment">/// 1. Create a buffer object (defines size and usage, but no memory backing yet)</span>
@@ -445,13 +378,13 @@ Your Graphics card
 <span class="token comment">///</span>
 <span class="token comment">/// # Returns</span>
 <span class="token comment">/// A tuple containing:</span>
-<span class="token comment">/// - vk:: Buffer: The buffer handle (used to bind for drawing)</span>
-<span class="token comment">/// - vk:: DeviceMemory: The memory allocation backing the buffer (needed for cleanup)</span>
+<span class="token comment">/// - vk::Buffer: The buffer handle (used to bind for drawing)</span>
+<span class="token comment">/// - vk::DeviceMemory: The memory allocation backing the buffer (needed for cleanup)</span>
 <span class="token comment">///</span>
 <span class="token comment">/// # Safety</span>
-<span class="token comment">/// This function is marked unsafe because it:</span>
-<span class="token comment">/// - Uses raw pointers via map_memory</span>
-<span class="token comment">/// - Performs unchecked memory operations via copy_nonoverlapping</span>
+<span class="token comment">/// This function is marked `unsafe` because it:</span>
+<span class="token comment">/// - Uses raw pointers via `map_memory`</span>
+<span class="token comment">/// - Performs unchecked memory operations via `copy_nonoverlapping`</span>
 <span class="token comment">/// - Requires the caller to ensure proper cleanup (destroy buffer and free memory)</span>
 <span class="token comment">///</span>
 <span class="token comment">/// # Errors</span>
@@ -502,7 +435,7 @@ Your Graphics card
 
 	<span class="token keyword">let</span>  pointer_to_mapped_memory <span class="token operator">=</span> <span class="token keyword">unsafe</span> <span class="token punctuation">{</span>
 		vulkan_logical_device<span class="token punctuation">.</span><span class="token function">map_memory</span><span class="token punctuation">(</span>
-		allocated_memory<span class="token punctuation">,</span>
+		allocated_memory<span class="token punctuation">,</span>	<span class="token comment">// Which GPU memory to map</span>
 		vk<span class="token punctuation">:</span><span class="token punctuation">:</span>DeviceSize<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token function">default</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token comment">// Start at the beginning of the allocation</span>
 		buffer_mem_requirements<span class="token punctuation">.</span>size<span class="token punctuation">,</span> <span class="token comment">// Map the entire allocation</span>
 		vk<span class="token punctuation">:</span><span class="token punctuation">:</span>MemoryMapFlags<span class="token punctuation">:</span><span class="token punctuation">:</span><span class="token function">empty</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token comment">// No special flags needed</span>
@@ -525,9 +458,9 @@ Your Graphics card
 
 <span class="token comment">/// Finds a memory type that satisfies both hardware requirements and desired properties.</span>
 <span class="token comment">/// # Parameters</span>
-<span class="token comment">/// - memory_properties: The GPU's available memory types and their properties</span>
-<span class="token comment">/// - allowed_memory_types: Bitmask of which memory types the buffer supports</span>
-<span class="token comment">/// - desired_properties: The properties we need</span>
+<span class="token comment">/// - `memory_properties`: The GPU's available memory types and their properties</span>
+<span class="token comment">/// - `allowed_memory_types`: Bitmask of which memory types the buffer supports</span>
+<span class="token comment">/// - `desired_properties`: The properties we need</span>
 <span class="token comment">///</span>
 <span class="token comment">/// # Returns</span>
 <span class="token comment">/// The index of the first suitable memory type found.</span>
