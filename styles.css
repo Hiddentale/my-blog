@@ -154,3 +154,103 @@ main {
 .stackedit__html ol {
     list-style-type: decimal;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    header {
+        padding: 0.75rem 0;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    main {
+        padding: 2rem 1rem;
+    }
+
+    .post-item h3 {
+        font-size: 1.1rem;
+    }
+
+    .post-meta {
+        font-size: 0.85rem;
+    }
+
+    #post-view {
+        padding: 15px;
+    }
+
+    .post-header {
+        padding: 0.75rem 0;
+    }
+
+    #post-content {
+        padding: 15px;
+    }
+
+    .stackedit__html {
+        font-size: 0.95rem;
+    }
+
+    .stackedit__html h1 {
+        font-size: 1.5rem;
+    }
+
+    .stackedit__html h2 {
+        font-size: 1.3rem;
+    }
+
+    .stackedit__html h3 {
+        font-size: 1.1rem;
+    }
+
+    .stackedit__html pre {
+        font-size: 0.85rem;
+        overflow-x: auto;
+    }
+
+    .stackedit__html img {
+        max-width: 100%;
+        height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.1rem;
+    }
+
+    main {
+        padding: 1.5rem 0.75rem;
+    }
+
+    .post-item h3 {
+        font-size: 1rem;
+    }
+
+    .home-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    #post-content {
+        padding: 10px;
+    }
+
+    .stackedit__html {
+        font-size: 0.9rem;
+    }
+
+    .stackedit__html h1 {
+        font-size: 1.3rem;
+    }
+
+    .stackedit__html h2 {
+        font-size: 1.15rem;
+    }
+
+    .stackedit__html pre {
+        font-size: 0.8rem;
+    }
+}
