@@ -1,0 +1,29 @@
+﻿<h1 id="from-rgb-to-...-rgb-adding-textures-to-our-code">From RGB to … RGB: Adding textures to our code</h1>
+<p>Welcome to part 2 of our series where we try to learn Vulkan while creating a whacko Blockgame.</p>
+<h2 id="why-are-we-doing-this">Why are we doing this?</h2>
+<h2 id="the-biggest-problem-to-fix">The biggest problem to fix</h2>
+<h2 id="the-setupthe-plan">The setup/The plan</h2>
+<p>The <strong>basic plan</strong> we will follow is this:</p>
+<ol>
+    <li>Load Image from Disk (CPU-side)</li>
+    <li>Create Staging Buffer (CPU→GPU transfer workspace)</li>
+    <li>Create Image (GPU texture storage)</li>
+    <li>Create ImageView (how to interpret the image)</li>
+    <li>Create Sampler (how to read the texture)</li>
+    <li>Transfer Image Data (CPU→GPU)</li>
+    <li>Create Descriptor Set Layout</li>
+    <li>Update Graphics Pipeline</li>
+    <li>Create Descriptor Pool</li>
+    <li>Allocate Descriptor Set</li>
+    <li>Update Descriptor Set (bind resources)</li>
+    <li>Begin Command Buffer</li>
+    <li>Begin Render Pass</li>
+    <li>Bind Pipeline</li>
+    <li>Bind Descriptor Set</li>
+    <li>Bind Vertex Buffer</li>
+    <li>Bind Index Buffer (if using indexed drawing)</li>
+    <li>Draw</li>
+    <li>End Render Pass &amp; Command Buffer</li>
+    <li>Submit &amp; Present</li>
+    <li>Cleanup (Shutdown)</li>
+</ol>
